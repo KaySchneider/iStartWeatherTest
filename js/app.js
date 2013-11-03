@@ -1,5 +1,5 @@
 const PLACEHOLDER_IMAGE = "loading.gif";
-const WU_API_KEY = "YOUR_API_KEY";//api key from weatherunderground.com
+const WU_API_KEY = "YOUR API KEY";//api key from weatherunderground.com
 
 
 angular.module('myApp', ['ngRoute'])
@@ -60,7 +60,7 @@ angular.module('myApp', ['ngRoute'])
         var service = {
             forecast: {},
             save: function() {
-                chrome.storage.local.set({'iswe': angular.toJson(service.forecast)});
+                chrome.storage.local.set({'iswe': angular.toJson( {forecast: service.forecast, ts:+new Date() })});
             }
 
         }
@@ -176,7 +176,11 @@ angular.module('myApp', ['ngRoute'])
             });
         });
         $scope.load = function (data) {
-            if(data.iswe.length === undefined) {
+
+            var iswea = angular.fromJson(data.iswe);
+            console.log(typeof( iswea.forecast ));
+            console.log(new Date(iswea.ts + 9000000));
+            if(typeof( iswea.forecast ) == 'undefined' || iswea.ts + 9000000 <= +new Date() ) {
                 Weather.getWeatherForecast($scope.user.location)
                     .then(function(data) {
                         $scope.OfflineStorage.forecast = data;
@@ -185,7 +189,7 @@ angular.module('myApp', ['ngRoute'])
                         $scope.from = 'weatherunderground.com';
                     });
             } else {
-                $scope.OfflineStorage.forecast = angular.fromJson(data.iswe);
+                $scope.OfflineStorage.forecast =  angular.fromJson(iswea.forecast) ;
                 $scope.weather.forecast = $scope.OfflineStorage.forecast;
                 $scope.from = 'cache';
                 console.log(data.iswe);
