@@ -90,7 +90,7 @@ angular.module('myApp', ['ngRoute'])
         return service;
     })
     .config(function(WeatherProvider) {
-        WeatherProvider.setApiKey('');
+        WeatherProvider.setApiKey(WU_API_KEY);
     })
     .config(['$routeProvider', function($routeProvider) {
         $routeProvider
