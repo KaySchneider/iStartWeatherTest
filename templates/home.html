@@ -1,0 +1,25 @@
+<div ng-controller="MainCtrl">
+
+        <div id="datetime">
+            <h1>{{ date.tz | date:'hh mm ss' }}</h1>
+            <h2>{{ date.tz | date:'EEEE, MMMM yyyy' }}</h2>
+        </div>
+        <div id="forecast">
+            <ul class="row list-unstyled">
+                <li ng-repeat="day in weather.forecast.forecastday" class="col-md-3">
+                 <span ng-class="{today: $index == 0}">
+
+                     <img class="{{ day.icon }}" localimage="{{day.icon_url}}" >
+
+                      <h3 ng-if="user.farenheit==true">{{ day.high.fahrenheit }}</h3>
+                      <h3 ng-if="user.farenheit==false">{{ day.high.celsius}}</h3>
+                      <h4 ng-if="$index == 0">Now</h4>
+                      <h4 ng-if="$index != 0">{{ day.date.weekday }}</h4>
+                </span>
+                </li>
+            </ul>
+            <span>{{from}}</span>
+            <a href="#/refresh"><span class="glyphicon glyphicon-refresh"></span></a>
+        </div>
+
+</div>
