@@ -1,7 +1,8 @@
 <div ng-controller="MainCtrl">
 
         <div id="datetime">
-            <h1>{{ date.tz | date:'hh mm ss' }}</h1>
+            <h1 ng-if="OfflineStorage.seconds == true">{{ date.tz | date:'hh mm ss' }}</h1>
+            <h1 ng-if="OfflineStorage.seconds == false">{{ date.tz | date:'hh mm ' }}</h1>
             <h2>{{ date.tz | date:'EEEE, MMMM yyyy' }}</h2>
         </div>
         <div id="forecast">
@@ -11,14 +12,17 @@
 
                      <img class="{{ day.icon }}" localimage="{{day.icon_url}}" >
 
-                      <h3 ng-if="user.farenheit==true">{{ day.high.fahrenheit }}</h3>
-                      <h3 ng-if="user.farenheit==false">{{ day.high.celsius}}</h3>
-                      <h4 ng-if="$index == 0">Now</h4>
+                      <h3 ng-if="OfflineStorage.farenheit==true"><p class="temp"><i18n>high</i18n></p>{{ day.high.fahrenheit }} <p class="temp">F</p></h3>
+                      <h3 ng-if="OfflineStorage.farenheit==false"><p class="temp"><i18n>high</i18n></p>{{ day.high.celsius}} <p class="temp">C</p></h3>
+                       <hr>
+                      <h5 ng-if="OfflineStorage.farenheit==true">{{ day.low.fahrenheit }}<p class="temp">F</p></h5>
+                      <h5 ng-if="OfflineStorage.farenheit==false">{{ day.low.celsius}} <p class="temp">C</p></h5>
+                      <h4 ng-if="$index == 0"><i18n>now</i18n></h4>
                       <h4 ng-if="$index != 0">{{ day.date.weekday }}</h4>
                 </span>
                 </li>
             </ul>
-            <span>{{from}}</span>
+            <span><i18n>from</i18n>{{from}}</span>
             <a href="#/refresh"><span class="glyphicon glyphicon-refresh"></span></a>
         </div>
 

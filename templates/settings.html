@@ -1,14 +1,42 @@
 <h2>Settings</h2>
-<form ng-submit="save()">
-    <input type="text"
-           ng-model="user.location"
-           auto-fill="fetchCities"
-           autocomplete="off"
-           timezone="user.timezone"
-           placeholder="Location" />
-    <input type="checkbox"
-            ng-model="user.farenheit"
-            >
-    <input class="btn btn-primary"
-           type="submit" value="Save" />
+<form ng-submit="save()" class="form-horizontal" role="form">
+    <div class="form-group">
+        <label class="control-label col-sm-2" for="inputLocation">Location</label>
+            <div class=" col-sm-5">
+                <input type="text"
+                       class="sfTypeahead"
+                       ng-model="OfflineStorage.location"
+                       ng-class="form-control"
+                       autocomplete="off"
+                       timezone="OfflineStorage.timezone"
+                       placeholder="Location"
+                       id="inputLocation"
+                       datasets="typeaheadConfig"
+                        />
+            </div>
+        </div>
+            <div class="form-group">
+                <label class="control-label col-sm-2" for="switchFahrenheit">Fahrenheit</label>
+                <div class=" col-sm-5">
+                    <input type="checkbox"
+                            ng-model="OfflineStorage.farenheit"
+                            id="switchFahrenheit"
+                            class="form-control"
+                            />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-sm-2" for="switchSeconds">Seconds</label>
+                <div class=" col-sm-5">
+                    <input type="checkbox"
+                           ng-model="OfflineStorage.seconds"
+                           id="switchSeconds"
+                           class="form-control"
+                            />
+                 </div>
+            </div>
+            </label>
+                <input class="btn btn-primary"
+                       type="submit" value="Save" />
+
 </form>

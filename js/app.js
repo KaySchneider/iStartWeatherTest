@@ -1,8 +1,17 @@
 const PLACEHOLDER_IMAGE = "loading.gif";
 const WU_API_KEY = "YOUR API KEY";//api key from weatherunderground.com
 
+var defaults = {
+    forecast: false,
+    time:+new Date(),
+    location: 'autoip',
+    farenheit: true,
+    seconds: true,
+    timezone:'Europe/Berlin'
+};
 
-angular.module('myApp', ['ngRoute'])
+
+angular.module('myApp', ['ngRoute','siyfion.sfTypeahead'])
     .provider('Weather', function() {
         var apiKey = "";
 
@@ -55,25 +64,33 @@ angular.module('myApp', ['ngRoute'])
         //We store the weather data on the localStorage so there is no need to capture every time the weather from the API
         var defaults = {
             forecast: false,
-            time:+new Date()
+            time:+new Date(),
+            location: 'autoip',
+            farenheit: true,
+            seconds: true,
+            timezone:''
         };
         var service = {
-            forecast: {},
             save: function() {
-                chrome.storage.local.set({'iswe': angular.toJson( {forecast: service.forecast, ts:+new Date() })});
+                console.log(service);
+                chrome.storage.local.set({'iswe': angular.toJson( {forecast: service.forecast, ts:+new Date(), location: service.location, timezone:service.timezone ,farenheit:service.farenheit,seconds:service.seconds})});
             }
-
         }
 
         return service;
     })
+    .factory('locale', function() {
+        chrome.i18n.getAcceptLanguages(function (lang) { console.log(lang); });
+    })
     .factory('UserService', function() {
         var defaults = {
             location: 'autoip',
-            farenheit: true
+            farenheit: true,
+            seconds: true
         };
 
         var service = {
+
             user: {},
             save: function() {
                 sessionStorage.presently =
@@ -108,117 +125,140 @@ angular.module('myApp', ['ngRoute'])
             })
             .otherwise({redirectTo: '/'});
     }])
-    .directive('autoFill', function($timeout, Weather) {
-        return {
-            restrict: 'EA',
-            scope: {
-                autoFill: '&',
-                ngModel: '=',
-                timezone: '='
-            },
-            compile: function(tEle, tAttrs) {
-                var tplEl = angular.element('<div class="typeahead">' +
-                    '<input type="text" autocomplete="off" />' +
-                    '<ul id="autolist" ng-show="reslist">' +
-                    '<li ng-repeat="res in reslist" ' +
-                    '>{{res.name}}</li>' +
-                    '</ul>' +
-                    '</div>');
-                var input = tplEl.find('input');
-                input.attr('type', tAttrs.type);
-                input.attr('ng-model', tAttrs.ngModel);
-                input.attr('timezone', tAttrs.timezone);
-                tEle.replaceWith(tplEl);
-                return function(scope, ele, attrs, ctrl) {
-                    var minKeyCount = attrs.minKeyCount || 3,
-                        timer;
-
-                    ele.bind('keyup', function(e) {
-                        val = ele.val();
-                        if (val.length < minKeyCount) {
-                            if (timer) $timeout.cancel(timer);
-                            scope.reslist = null;
-                            return;
-                        } else {
-                            if (timer) $timeout.cancel(timer);
-                            timer = $timeout(function() {
-                                scope.autoFill()(val)
-                                    .then(function(data) {
-                                        if (data && data.length > 0) {
-                                            scope.reslist = data;
-                                            scope.ngModel = "zmw:" + data[0].zmw;
-                                            scope.timezone = data[0].tz;
-                                        }
-                                    });
-                            }, 300);
-                        }
-                    });
-
-                    // Hide the reslist on blur
-                    input.bind('blur', function(e) {
-                        scope.reslist = null;
-                        scope.$digest();
-                    });
-                }
-            }
-        }
-    })
     .controller('MainCtrl',
     function($scope, $timeout, Weather, UserService,OfflineStorage) {
         $scope.date = {};
         $scope.OfflineStorage = OfflineStorage;
         $scope.weather = {}
+        $scope.locale = '';
         chrome.storage.local.get('iswe', function(value) {
             // The $apply is only necessary to execute the function inside Angular scope
-            console.log(value);
             $scope.$apply(function() {
                 $scope.load(value);
             });
         });
+        //get the locales for displaying the date
+        chrome.i18n.getAcceptLanguages(function (lang) {
+            $scope.$apply(function() {
+                $scope.locale = lang[0];
+                updateTime();
+            });
+        });
         $scope.load = function (data) {
-
             var iswea = angular.fromJson(data.iswe);
-            console.log(typeof( iswea.forecast ));
-            console.log(new Date(iswea.ts + 9000000));
-            if(typeof( iswea.forecast ) == 'undefined' || iswea.ts + 9000000 <= +new Date() ) {
-                Weather.getWeatherForecast($scope.user.location)
+            if(typeof(iswea) === 'undefined') {
+                iswea = defaults;
+            }
+            var cooldown = 9000000;
+            //cooldown = 10;
+            if(typeof( iswea.forecast ) == 'undefined' || iswea.ts + cooldown <= +new Date() || iswea.forecast === false) {
+                if( iswea.forecast === false ) {
+                    $scope.OfflineStorage.timezone = defaults.timezone;
+                    $scope.OfflineStorage.location = defaults.location;
+                    $scope.OfflineStorage.farenheit = defaults.farenheit;
+                    $scope.OfflineStorage.seconds = defaults.seconds;
+                } else {
+                    $scope.OfflineStorage.timezone = iswea.timezone;
+                    $scope.OfflineStorage.location = iswea.location ;
+                    $scope.OfflineStorage.farenheit = iswea.farenheit;
+                    $scope.OfflineStorage.seconds = iswea.seconds;
+                }
+                var getDataString='';
+                if($scope.OfflineStorage.location !== 'autoip') {
+                    getDataString = 'zmw:' +$scope.OfflineStorage.location.zmw ;
+                } else {
+                    getDataString = $scope.OfflineStorage.location;
+                }
+                Weather.getWeatherForecast(getDataString)
                     .then(function(data) {
                         $scope.OfflineStorage.forecast = data;
-                        $scope.OfflineStorage.save();
                         $scope.weather.forecast = data;
-                        $scope.from = 'weatherunderground.com';
+                        $scope.OfflineStorage.save();
+                        $scope.from = ' wunderground.com';
                     });
             } else {
-                $scope.OfflineStorage.forecast =  angular.fromJson(iswea.forecast) ;
+                $scope.OfflineStorage.forecast =  iswea.forecast ;
+                $scope.OfflineStorage.timezone = iswea.timezone;
+                $scope.OfflineStorage.location = iswea.location;
+                $scope.OfflineStorage.farenheit = iswea.farenheit;
+                $scope.OfflineStorage.seconds = iswea.seconds;
                 $scope.weather.forecast = $scope.OfflineStorage.forecast;
-                $scope.from = 'cache';
-                console.log(data.iswe);
+                $scope.from = ' cache';
             }
         };
 
         var updateTime = function() {
-            $scope.date.tz = new Date(new Date()
-                .toLocaleString("en-US", {timeZone: $scope.user.timezone}));
+
+            var tmpDate =new Date();
+            $scope.date.tz =new Date(
+            new Date().toLocaleString("en-US", {timeZone: $scope.OfflineStorage.timezone}));
+
             $timeout(updateTime, 1000);
         };
         //$scope.imageHelper = ;
 
-        $scope.user = UserService.user;
+        $scope.user = OfflineStorage;
         //check the offline cache at first
 
-        updateTime();
+
     })
     .controller('SettingsCtrl',
-    function($scope, $location, Weather, UserService) {
-        $scope.user = UserService.user;
+    function($scope, $location, Weather, OfflineStorage) {
+        $scope.OfflineStorage = OfflineStorage;
+        chrome.storage.local.get('iswe', function(value) {
+            // The $apply is only necessary to execute the function inside Angular scope
+            $scope.$apply(function() {
+                $scope.load(value);
+            });
+        });
 
+        $scope.typeaheadConfig =
+                {
+                    valueKey: 'name',
+                    remote: {
+                        valueKey: 'name',
+                        url:'http://autocomplete.wunderground.com/aq?query=%QUERY',
+                        filter: function(parsedResponse){
+                            ret = [];
+                            parsedResponse.RESULTS.forEach(function(itme) {
+                                ret.push(itme);
+                            });
+                            return ret;
+                        }
+                    }
+                };
+        $scope.load = function (data) {
+            var iswea = angular.fromJson(data.iswe);
+            console.log(typeof( iswea.forecast ));
+            console.log(new Date(iswea.ts + 9000000));
+            if(typeof( iswea.forecast ) == 'undefined' ) {
+                        $scope.OfflineStorage.timezone = defaults.timezone;
+                        $scope.OfflineStorage.location = defaults.location;
+                        $scope.OfflineStorage.farenheit = defaults.farenheit;
+                        $scope.OfflineStorage.seconds = defaults.seconds;
+                        $scope.OfflineStorage.save();
+            } else {
+                $scope.OfflineStorage.forecast = iswea.forecast ;
+                $scope.OfflineStorage.timezone = iswea.timezone;
+                $scope.OfflineStorage.location = iswea.location;
+                $scope.OfflineStorage.farenheit = iswea.farenheit;
+                $scope.OfflineStorage.seconds = iswea.seconds;
+                console.log($scope.OfflineStorage)
+            }
+        };
         $scope.save = function() {
-            UserService.save();
+            $scope.OfflineStorage.save();
             $location.path('/');
         }
         $scope.fetchCities = Weather.getCityDetails;
     })
     .directive('localimage', function() {
+        /**
+         * parse the image from weatherunderground.com to an localimage
+         * to download other imagesets from weatherunderground you can use
+         * my simple nodejs downloader from github:
+         * https://github.com/KaySchneider/nimloadhelper
+         */
         return {
                 restrict: 'A',
                 link: function (scope, element, attrs) {
@@ -229,6 +269,29 @@ angular.module('myApp', ['ngRoute'])
                     element[0].src = injectName;
                 },
                 replace:true
+        }
+    })
+    .directive('valueOfModel', function() {
+        return {
+            restrict: 'A',
+            link: function(scope, element, attrs) {
+                console.log(element, scope, attrs);
+            }
+        }
+    })
+    .directive('i18n', function () {
+        /**
+         * make use of the chrome.i18n API to localise the application
+         * into some languages wich are defined in _locales folder
+         */
+        return {
+            restrict: 'E',
+            link: function(scope, element, attrs) {
+                var key = element[0].innerHTML;
+                var translated = chrome.i18n.getMessage(key);
+                element[0].innerHTML = translated;
+            },
+            replace:true
         }
     })
     ;

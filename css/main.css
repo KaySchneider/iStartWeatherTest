@@ -77,3 +77,22 @@ text {
 .dbg {
     color:white;
 }
+hr {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    border-top: 5px solid #0CB9F0;
+    border-left: 0px;
+    border-right: 0px;
+    border-bottom: 0px;
+    width: 50%;
+}
+
+.temp {
+    display:inline-block;
+    font-size: 10px;
+}
+
+
+.list-inline li a img {
+    vertical-align: bottom;
+}

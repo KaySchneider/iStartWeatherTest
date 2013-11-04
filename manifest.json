@@ -5,13 +5,12 @@
     "version": "0.1",
     "permissions": [
         "http://api.wunderground.com/api/",
-        "http://autocomplete.wunderground.com/api",
+        "http://autocomplete.wunderground.com/aq",
         "storage",
         "webview",
         "<all_urls>"
     ],
-
-
+    "default_locale": "en_US",
     "app": {
         "background": {
             "scripts": ["js/runbackground.js"]
